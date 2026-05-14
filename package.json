@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
+    "build:dashboard": "cd src/dashboard && npm install && npm run build",
     "test": "node tests/test-messages.js",
     "test:sheets": "node tests/test-sheets.js"
   },

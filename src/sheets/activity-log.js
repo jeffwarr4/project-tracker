@@ -56,4 +56,26 @@ async function getActivityForProject(projectId) {
     }));
 }
 
-module.exports = { addActivityEntry, resolveUpdateType };
+async function getAllActivity(filters = {}) {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID(),
+    range: `${SHEET}!A2:E`,
+  });
+
+  if (!res.data.values) return [];
+
+  let entries = res.data.values.map(row => ({
+    projectId: row[0] || '',
+    date: row[1] || '',
+    updateType: row[2] || '',
+    description: row[3] || '',
+    updatedBy: row[4] || '',
+  }));
+
+  if (filters.projectId) entries = entries.filter(e => e.projectId === filters.projectId);
+
+  return entries.reverse(); // most recent first
+}
+
+module.exports = { addActivityEntry, getActivityForProject, resolveUpdateType, getAllActivity };

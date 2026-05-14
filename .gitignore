@@ -4,6 +4,10 @@ config/google-credentials.json
 
 # Dependencies
 node_modules/
+src/dashboard/node_modules/
+
+# Dashboard build output (generated, not committed)
+src/dashboard/dist/
 
 # Logs
 *.log

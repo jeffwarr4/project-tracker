@@ -41,4 +41,28 @@ async function getTimeEntriesForProject(projectId) {
     }));
 }
 
-module.exports = { addTimeEntry, getTimeEntriesForProject };
+async function getAllTimeEntries(filters = {}) {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID(),
+    range: `${SHEET}!A2:E`,
+  });
+
+  if (!res.data.values) return [];
+
+  let entries = res.data.values.map(row => ({
+    projectId: row[0] || '',
+    date: row[1] || '',
+    hours: parseFloat(row[2]) || 0,
+    description: row[3] || '',
+    loggedBy: row[4] || '',
+  }));
+
+  if (filters.projectId) entries = entries.filter(e => e.projectId === filters.projectId);
+  if (filters.startDate)  entries = entries.filter(e => e.date >= filters.startDate);
+  if (filters.endDate)    entries = entries.filter(e => e.date <= filters.endDate);
+
+  return entries;
+}
+
+module.exports = { addTimeEntry, getTimeEntriesForProject, getAllTimeEntries };

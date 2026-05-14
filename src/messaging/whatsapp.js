@@ -207,4 +207,4 @@ async function handleIncoming(req, res) {
   }
 }
 
-module.exports = { handleVerification, handleIncoming };
+module.exports = { handleVerification, handleIncoming, sendWhatsAppMessage };

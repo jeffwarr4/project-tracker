@@ -28,6 +28,7 @@ async function getAllProjects() {
     estimatedHours: parseFloat(row[COL.EST_HOURS]) || null,
     hoursLogged: parseFloat(row[COL.HOURS_LOGGED]) || 0,
     lastUpdated: row[COL.UPDATED] || '',
+    createdBy: row[COL.CREATED_BY] || '',
   }));
 }
 
