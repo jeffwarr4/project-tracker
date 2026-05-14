@@ -1,0 +1,22 @@
+# Secrets — never commit these
+.env
+config/google-credentials.json
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Personal reference docs
+*.docx
+*.doc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

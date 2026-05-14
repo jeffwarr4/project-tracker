@@ -1,0 +1,314 @@
+{
+  "meta": { "instanceId": "" },
+  "name": "Project Tracker Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "node-telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "credentials": { "telegramApi": { "id": "1", "name": "Telegram Bot" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.message.voice }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-is-voice",
+      "name": "Is Voice Note?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getFile",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "file_id", "value": "={{ $json.message.voice.file_id }}" }]
+        },
+        "options": {}
+      },
+      "id": "node-get-file",
+      "name": "Get Telegram File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 160]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot{{ $env.TELEGRAM_BOT_TOKEN }}/{{ $json.result.file_path }}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "id": "node-download-voice",
+      "name": "Download Voice File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 160]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "whisper-1" },
+            { "name": "language", "value": "en" },
+            { "name": "file", "value": "={{ $binary.data }}", "parameterType": "formBinaryData" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-whisper",
+      "name": "Transcribe with Whisper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 160],
+      "credentials": { "httpHeaderAuth": { "id": "2", "name": "OpenAI API" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge voice transcript or text message into a unified 'messageText' field\nconst items = $input.all();\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    messageText: item.json.text || item.json.message?.text || '',\n    fromName: item.json.message?.from?.first_name || 'Unknown',\n    chatId: item.json.message?.chat?.id,\n  }\n}));"
+      },
+      "id": "node-extract-text",
+      "name": "Extract Text (from text branch)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    messageText: item.json.text,\n    fromName: $('Telegram Trigger').first().json.message?.from?.first_name || 'Unknown',\n    chatId: $('Telegram Trigger').first().json.message?.chat?.id,\n  }\n}));"
+      },
+      "id": "node-merge-voice",
+      "name": "Set Message Text (from voice branch)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 160]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": { "value": "={{ $env.GOOGLE_SHEETS_ID }}", "mode": "id" },
+        "sheetName": { "value": "Projects", "mode": "name" },
+        "options": {}
+      },
+      "id": "node-get-projects",
+      "name": "Get Existing Projects",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, 440],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "3", "name": "Google Sheets" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the Claude API request\nconst messageText = $('Extract Text (from text branch)').first().json.messageText\n  || $('Set Message Text (from voice branch)').first().json.messageText;\n\nconst projectRows = $('Get Existing Projects').all();\nconst projectList = projectRows\n  .map(r => `  - [${r.json['Project ID']}] ${r.json['Project Name']} (Client: ${r.json['Client'] || 'N/A'}, Status: ${r.json['Status']})`)\n  .join('\\n') || '  (no existing projects yet)';\n\nconst systemPrompt = `You are a project tracker assistant. Classify messages into NEW_PROJECT, PROJECT_UPDATE, TIME_LOG, or CLARIFICATION_NEEDED and return valid JSON only.\\n\\nCategories:\\n- NEW_PROJECT: new work, new client, setup request\\n- PROJECT_UPDATE: references existing project, status/scope change\\n- TIME_LOG: hours spent, work done, time tracking\\n- CLARIFICATION_NEEDED: ambiguous, cannot classify\\n\\nReturn JSON: { category, confidence, data: {...}, confirmationMessage }`;\n\nreturn [{\n  json: {\n    messageText,\n    projectList,\n    systemPrompt,\n    fromName: $('Extract Text (from text branch)').first().json.fromName,\n    chatId: $('Extract Text (from text branch)').first().json.chatId,\n  }\n}];"
+      },
+      "id": "node-build-prompt",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 440]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"system\": \"{{ $json.systemPrompt }}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"Existing projects:\\n{{ $json.projectList }}\\n\\nMessage: \\\"{{ $json.messageText }}\\\"\"}]\n}",
+        "options": {}
+      },
+      "id": "node-claude",
+      "name": "Parse with Claude AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 440],
+      "credentials": { "httpHeaderAuth": { "id": "4", "name": "Anthropic API" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.content[0].text.trim();\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch(e) {\n  const m = raw.match(/```(?:json)?\\s*([\\s\\S]+?)\\s*```/);\n  parsed = m ? JSON.parse(m[1]) : { category: 'CLARIFICATION_NEEDED', data: { question: 'Could not parse your message. Please rephrase.' }, confirmationMessage: '' };\n}\nreturn [{ json: { ...parsed, chatId: $('Build AI Prompt').first().json.chatId, fromName: $('Build AI Prompt').first().json.fromName } }];"
+      },
+      "id": "node-parse-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 440]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            { "outputKey": "NEW_PROJECT", "conditions": { "string": [{ "value1": "={{ $json.category }}", "operation": "equal", "value2": "NEW_PROJECT" }] } },
+            { "outputKey": "PROJECT_UPDATE", "conditions": { "string": [{ "value1": "={{ $json.category }}", "operation": "equal", "value2": "PROJECT_UPDATE" }] } },
+            { "outputKey": "TIME_LOG", "conditions": { "string": [{ "value1": "={{ $json.category }}", "operation": "equal", "value2": "TIME_LOG" }] } }
+          ],
+          "fallbackOutput": "CLARIFICATION"
+        },
+        "options": {}
+      },
+      "id": "node-route",
+      "name": "Route by Category",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1540, 440]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "value": "={{ $env.GOOGLE_SHEETS_ID }}", "mode": "id" },
+        "sheetName": { "value": "Projects", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Project ID": "=PRJ-{{ String(Date.now()).slice(-6) }}",
+            "Project Name": "={{ $json.data.projectName }}",
+            "Client": "={{ $json.data.clientName || '' }}",
+            "Status": "=active",
+            "Description": "={{ $json.data.description || '' }}",
+            "Documents Needed": "={{ ($json.data.documentsNeeded || []).join(', ') }}",
+            "Estimated Hours": "={{ $json.data.estimatedHours || '' }}",
+            "Hours Logged": "=0",
+            "Last Updated": "={{ new Date().toISOString().split('T')[0] }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-add-project",
+      "name": "Add New Project to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1760, 200],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "3", "name": "Google Sheets" } }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "value": "={{ $env.GOOGLE_SHEETS_ID }}", "mode": "id" },
+        "sheetName": { "value": "Time Log", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Project ID": "={{ $json.data.projectId }}",
+            "Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Hours": "={{ $json.data.hours }}",
+            "Description": "={{ $json.data.description || '' }}",
+            "Logged By": "={{ $json.fromName }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-log-time",
+      "name": "Log Time to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1760, 440],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "3", "name": "Google Sheets" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.confirmationMessage || 'Done! Data saved to Google Sheets.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "id": "node-reply",
+      "name": "Send Telegram Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1980, 440],
+      "credentials": { "telegramApi": { "id": "1", "name": "Telegram Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.data?.question || 'Could you clarify your message?' }}",
+        "additionalFields": {}
+      },
+      "id": "node-clarify",
+      "name": "Ask Clarification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1760, 680],
+      "credentials": { "telegramApi": { "id": "1", "name": "Telegram Bot" } }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Is Voice Note?", "type": "main", "index": 0 }]]
+    },
+    "Is Voice Note?": {
+      "main": [
+        [{ "node": "Get Telegram File Info", "type": "main", "index": 0 }],
+        [{ "node": "Extract Text (from text branch)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Telegram File Info": {
+      "main": [[{ "node": "Download Voice File", "type": "main", "index": 0 }]]
+    },
+    "Download Voice File": {
+      "main": [[{ "node": "Transcribe with Whisper", "type": "main", "index": 0 }]]
+    },
+    "Transcribe with Whisper": {
+      "main": [[{ "node": "Set Message Text (from voice branch)", "type": "main", "index": 0 }]]
+    },
+    "Set Message Text (from voice branch)": {
+      "main": [[{ "node": "Get Existing Projects", "type": "main", "index": 0 }]]
+    },
+    "Extract Text (from text branch)": {
+      "main": [[{ "node": "Get Existing Projects", "type": "main", "index": 0 }]]
+    },
+    "Get Existing Projects": {
+      "main": [[{ "node": "Build AI Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build AI Prompt": {
+      "main": [[{ "node": "Parse with Claude AI", "type": "main", "index": 0 }]]
+    },
+    "Parse with Claude AI": {
+      "main": [[{ "node": "Parse AI Response", "type": "main", "index": 0 }]]
+    },
+    "Parse AI Response": {
+      "main": [[{ "node": "Route by Category", "type": "main", "index": 0 }]]
+    },
+    "Route by Category": {
+      "main": [
+        [{ "node": "Add New Project to Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Log Time to Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Log Time to Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Ask Clarification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Add New Project to Sheet": {
+      "main": [[{ "node": "Send Telegram Reply", "type": "main", "index": 0 }]]
+    },
+    "Log Time to Sheet": {
+      "main": [[{ "node": "Send Telegram Reply", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "project-tracker" }]
+}
