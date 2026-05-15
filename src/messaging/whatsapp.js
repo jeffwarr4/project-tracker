@@ -79,6 +79,37 @@ async function sendWhatsAppMessage(to, text) {
   );
 }
 
+async function sendWhatsAppTemplate(to, { senderName, projectName, message }) {
+  await axios.post(
+    `${GRAPH_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'template',
+      template: {
+        name: 'project_collaboration',
+        language: { code: 'en_US' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: senderName },
+              { type: 'text', text: projectName || 'Unknown project' },
+              { type: 'text', text: message },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}
+
 async function markAsRead(messageId) {
   await axios.post(
     `${GRAPH_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -207,4 +238,4 @@ async function handleIncoming(req, res) {
   }
 }
 
-module.exports = { handleVerification, handleIncoming, sendWhatsAppMessage };
+module.exports = { handleVerification, handleIncoming, sendWhatsAppMessage, sendWhatsAppTemplate };

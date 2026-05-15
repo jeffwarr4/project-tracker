@@ -4,7 +4,7 @@ const express = require('express');
 const { getAllProjects } = require('../sheets/projects');
 const { getAllTimeEntries } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
-const { sendWhatsAppMessage } = require('../messaging/whatsapp');
+const { sendWhatsAppTemplate } = require('../messaging/whatsapp');
 
 const router = express.Router();
 
@@ -150,14 +150,33 @@ router.post('/message', async (req, res) => {
       return res.status(400).json({ error: 'Recipient phone not configured in .env' });
     }
 
-    const fullMessage = projectName ? `[${projectName}]\n${message}` : message;
-    await sendWhatsAppMessage(recipientWaId, fullMessage);
+    try {
+      await sendWhatsAppTemplate(recipientWaId, {
+        senderName,
+        projectName: projectName || 'Unknown project',
+        message,
+      });
+    } catch (waErr) {
+      // Parse Meta's error response for a user-friendly message
+      const metaError = waErr.response?.data?.error;
+      const code = metaError?.code;
+      let friendly;
+      if (code === 132001 || metaError?.message?.toLowerCase().includes('template')) {
+        friendly = 'WhatsApp template "project_collaboration" not found or not approved. Check Meta WhatsApp Manager.';
+      } else if (code === 131047) {
+        friendly = 'Message failed: recipient is outside the 24-hour window and the template was rejected.';
+      } else {
+        friendly = metaError?.message || waErr.message;
+      }
+      console.error('POST /api/message WhatsApp error:', metaError || waErr.message);
+      return res.status(502).json({ error: friendly });
+    }
 
     if (projectId) {
       await addActivityEntry({
         projectId,
         updateType:  'collaboration message',
-        description: message.slice(0, 200),
+        description: `${senderName}: ${message.slice(0, 180)}`,
         updatedBy:   senderName,
       });
     }
