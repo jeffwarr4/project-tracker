@@ -6,6 +6,9 @@ const { getAllTimeEntries } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
 const { notifyCollaborationMessage } = require('../email/mailer');
 
+const silentEmail = promise =>
+  promise.catch(err => console.warn('[email] notification failed:', err.message));
+
 const router = express.Router();
 
 // --- Auth ----------------------------------------------------------------
@@ -157,7 +160,7 @@ router.post('/message', async (req, res) => {
       updatedBy:   senderName,
     });
 
-    await notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail);
+    silentEmail(notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail));
 
     res.json({ success: true });
   } catch (err) {
