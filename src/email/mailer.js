@@ -1,23 +1,12 @@
 'use strict';
 
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-let _transporter = null;
-
-function getTransporter() {
-  if (_transporter) return _transporter;
-  _transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-    connectionTimeout: 5000,
-    greetingTimeout:   5000,
-    socketTimeout:     10000,
-  });
-  return _transporter;
+let _resend = null;
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
 }
 
 const EMAILS = {
@@ -57,18 +46,17 @@ function html(title, headerColor = '#6366f1', rows = [], extra = '') {
 // --- Send helpers --------------------------------------------------------
 
 async function send(to, subject, htmlBody) {
-  const enabled = process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD;
-  if (!enabled) {
-    console.warn('[email] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email.');
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email.');
     return;
   }
-  const recipients = Array.isArray(to) ? to.join(', ') : to;
-  await getTransporter().sendMail({
-    from: `"Project Tracker" <${process.env.GMAIL_USER}>`,
-    to: recipients,
+  const { error } = await getResend().emails.send({
+    from: 'Project Tracker <onboarding@resend.dev>',
+    to:   Array.isArray(to) ? to : [to],
     subject,
     html: htmlBody,
   });
+  if (error) throw new Error(error.message);
 }
 
 // --- Notification functions (fire-and-forget safe) -----------------------
