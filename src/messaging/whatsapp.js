@@ -80,27 +80,33 @@ async function sendWhatsAppMessage(to, text) {
 }
 
 async function sendWhatsAppTemplate(to, { senderName, projectName, message }) {
+  const recipient = to.replace(/^\+/, '');
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: recipient,
+    type: 'template',
+    template: {
+      name: 'project_collaboration',
+      language: { code: 'en_US' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: senderName },
+            { type: 'text', text: projectName || 'Unknown project' },
+            { type: 'text', text: message },
+          ],
+        },
+      ],
+    },
+  };
+
+  console.log('[WhatsApp template] payload:', JSON.stringify(payload, null, 2));
+
   await axios.post(
     `${GRAPH_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    {
-      messaging_product: 'whatsapp',
-      to,
-      type: 'template',
-      template: {
-        name: 'project_collaboration',
-        language: { code: 'en_US' },
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: senderName },
-              { type: 'text', text: projectName || 'Unknown project' },
-              { type: 'text', text: message },
-            ],
-          },
-        ],
-      },
-    },
+    payload,
     {
       headers: {
         Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
