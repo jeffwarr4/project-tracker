@@ -1,4 +1,4 @@
-const CACHE = 'pt-v1';
+const CACHE = 'pt-v2';
 const STATIC = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -16,6 +16,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Non-GET requests (POST, PUT, etc.) must bypass the service worker entirely
+  if (e.request.method !== 'GET') return;
+
   const url = new URL(e.request.url);
 
   // Network-first for API calls — return cached data if offline
