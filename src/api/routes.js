@@ -160,9 +160,8 @@ router.post('/message', async (req, res) => {
       updatedBy:   senderName,
     });
 
-    silentEmail(notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail));
-
     res.json({ success: true });
+    silentEmail(notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail));
   } catch (err) {
     console.error('POST /api/message:', err.message);
     res.status(500).json({ error: err.message });
