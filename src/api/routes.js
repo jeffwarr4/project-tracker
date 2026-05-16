@@ -4,7 +4,7 @@ const express = require('express');
 const { getAllProjects } = require('../sheets/projects');
 const { getAllTimeEntries } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
-const { sendWhatsAppTemplate } = require('../messaging/whatsapp');
+const { notifyCollaborationMessage } = require('../email/mailer');
 
 const router = express.Router();
 
@@ -135,51 +135,29 @@ router.post('/message', async (req, res) => {
     const partnerId = strip(process.env.PHONE_PARTNER);
     const fromId    = strip(fromPhone);
 
-    let recipientWaId, senderName;
+    let senderName, recipientEmail;
     if (fromId === jeffId) {
-      recipientWaId = partnerId;
-      senderName    = process.env.NAME_JEFF    || 'Jeff';
+      senderName     = process.env.NAME_JEFF    || 'Jeff';
+      recipientEmail = process.env.EMAIL_PARTNER;
     } else if (fromId === partnerId) {
-      recipientWaId = jeffId;
-      senderName    = process.env.NAME_PARTNER || 'Partner';
+      senderName     = process.env.NAME_PARTNER || 'Partner';
+      recipientEmail = process.env.EMAIL_JEFF;
     } else {
       return res.status(403).json({ error: 'Sender not recognized' });
     }
 
-    if (!recipientWaId) {
-      return res.status(400).json({ error: 'Recipient phone not configured in .env' });
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'Recipient email not configured in .env' });
     }
 
-    try {
-      await sendWhatsAppTemplate(recipientWaId, {
-        senderName,
-        projectName: projectName || 'Unknown project',
-        message,
-      });
-    } catch (waErr) {
-      // Parse Meta's error response for a user-friendly message
-      const metaError = waErr.response?.data?.error;
-      const code = metaError?.code;
-      let friendly;
-      if (code === 132001 || metaError?.message?.toLowerCase().includes('template')) {
-        friendly = 'WhatsApp template "project_collaboration" not found or not approved. Check Meta WhatsApp Manager.';
-      } else if (code === 131047) {
-        friendly = 'Message failed: recipient is outside the 24-hour window and the template was rejected.';
-      } else {
-        friendly = metaError?.message || waErr.message;
-      }
-      console.error('POST /api/message WhatsApp error:', metaError || waErr.message);
-      return res.status(502).json({ error: friendly });
-    }
+    await addActivityEntry({
+      projectId:   projectId || 'N/A',
+      updateType:  'collaboration message',
+      description: `${senderName}: ${message.slice(0, 180)}`,
+      updatedBy:   senderName,
+    });
 
-    if (projectId) {
-      await addActivityEntry({
-        projectId,
-        updateType:  'collaboration message',
-        description: `${senderName}: ${message.slice(0, 180)}`,
-        updatedBy:   senderName,
-      });
-    }
+    await notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail);
 
     res.json({ success: true });
   } catch (err) {

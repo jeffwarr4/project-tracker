@@ -42,7 +42,7 @@ export default function MessageModal({ project, user, onClose }) {
         </div>
 
         {sent ? (
-          <div className="text-center py-4 text-green-600 font-medium">✓ Message sent via WhatsApp</div>
+          <div className="text-center py-4 text-green-600 font-medium">✓ Message sent via email</div>
         ) : (
           <>
             <textarea
@@ -63,7 +63,7 @@ export default function MessageModal({ project, user, onClose }) {
                 disabled={sending || !text.trim()}
                 className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold disabled:opacity-50"
               >
-                {sending ? 'Sending…' : 'Send via WhatsApp'}
+                {sending ? 'Sending…' : 'Send via Email'}
               </button>
             </div>
           </>

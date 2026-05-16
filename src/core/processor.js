@@ -4,6 +4,10 @@ const { parseMessage } = require('../ai/message-parser');
 const { getAllProjects, addProject, updateProject, incrementHoursLogged } = require('../sheets/projects');
 const { addTimeEntry } = require('../sheets/time-log');
 const { addActivityEntry, resolveUpdateType } = require('../sheets/activity-log');
+const { notifyNewProject, notifyProjectUpdate, notifyTimeLog } = require('../email/mailer');
+
+const silentEmail = promise =>
+  promise.catch(err => console.warn('[email] notification failed:', err.message));
 
 /**
  * Core message processing pipeline — shared by all channels.
@@ -35,6 +39,8 @@ async function processMessage({ messageText, senderName, replyFn }) {
         updatedBy: senderName,
       });
 
+      silentEmail(notifyNewProject({ ...data, id: project.id }, senderName));
+
       await replyFn(
         `New project created!\n\n` +
         `ID: ${project.id}\n` +
@@ -60,6 +66,8 @@ async function processMessage({ messageText, senderName, replyFn }) {
         updatedBy: senderName,
       });
 
+      silentEmail(notifyProjectUpdate(data.projectId, data.projectName, updates, senderName));
+
       await replyFn(
         `Project updated!\n\n` +
         `Project: ${data.projectName} (${data.projectId})\n` +
@@ -80,6 +88,8 @@ async function processMessage({ messageText, senderName, replyFn }) {
           loggedBy: senderName,
         }),
       ]);
+
+      silentEmail(notifyTimeLog(data.projectId, data.projectName, data.hours, data.description, senderName, newTotal));
 
       await replyFn(
         `Time logged!\n\n` +
