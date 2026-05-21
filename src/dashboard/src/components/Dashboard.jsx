@@ -70,6 +70,7 @@ export default function Dashboard({ user, onLogout }) {
               activity={activity}
               user={user}
               filters={filters}
+              refresh={refresh}
             />
 
             <ActivityFeed entries={activity} filters={filters} />

@@ -11,7 +11,7 @@ function getColumn(project) {
 const COLUMN_ICONS = { 'Not Started': '⏳', 'In Progress': '🔄', 'Complete': '✅' };
 const COLUMN_ORDER = ['Not Started', 'In Progress', 'Complete'];
 
-export default function KanbanBoard({ projects, activity, user, filters }) {
+export default function KanbanBoard({ projects, activity, user, filters, refresh }) {
   const [expanded, setExpanded] = useState('In Progress');
   const [detail,   setDetail]   = useState(null);
 
@@ -53,6 +53,7 @@ export default function KanbanBoard({ projects, activity, user, filters }) {
                       recentActivity={recentActivityFor(p.id)}
                       user={user}
                       onClick={() => setDetail(p)}
+                      onLogged={refresh}
                     />
                   ))
               }
@@ -100,7 +101,7 @@ export default function KanbanBoard({ projects, activity, user, filters }) {
         })}
       </div>
 
-      {detail && <ProjectDetail project={detail} onClose={() => setDetail(null)} />}
+      {detail && <ProjectDetail project={detail} user={user} onClose={() => setDetail(null)} />}
     </>
   );
 }

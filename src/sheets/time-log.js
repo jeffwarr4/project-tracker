@@ -4,11 +4,11 @@ const { getSheetsClient, SPREADSHEET_ID } = require('./client');
 
 const SHEET = 'Time Log';
 
-async function addTimeEntry({ projectId, hours, description, loggedBy }) {
+async function addTimeEntry({ projectId, hours, description, loggedBy, date }) {
   const sheets = await getSheetsClient();
-  const date = new Date().toISOString().split('T')[0];
+  const entryDate = date || new Date().toISOString().split('T')[0];
 
-  const row = [projectId, date, hours, description || '', loggedBy || ''];
+  const row = [projectId, entryDate, hours, description || '', loggedBy || ''];
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID(),

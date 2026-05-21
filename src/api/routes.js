@@ -1,8 +1,8 @@
 'use strict';
 
 const express = require('express');
-const { getAllProjects } = require('../sheets/projects');
-const { getAllTimeEntries } = require('../sheets/time-log');
+const { getAllProjects, incrementHoursLogged } = require('../sheets/projects');
+const { getAllTimeEntries, addTimeEntry } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
 const { notifyCollaborationMessage } = require('../email/mailer');
 
@@ -120,6 +120,49 @@ router.get('/activity', async (req, res) => {
     res.json({ entries: merged });
   } catch (err) {
     console.error('GET /api/activity:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Time Log (dashboard) ------------------------------------------------
+
+router.post('/timelog', async (req, res) => {
+  try {
+    const { projectId, projectName, hours, description, date, fromPhone } = req.body || {};
+    if (!projectId || !hours || !fromPhone) {
+      return res.status(400).json({ error: 'projectId, hours, and fromPhone are required' });
+    }
+
+    const parsedHours = parseFloat(hours);
+    if (isNaN(parsedHours) || parsedHours <= 0) {
+      return res.status(400).json({ error: 'hours must be a positive number' });
+    }
+
+    const strip = p => (p || '').replace(/\+/g, '');
+    const fromId    = strip(fromPhone);
+    const jeffId    = strip(process.env.PHONE_JEFF);
+    const partnerId = strip(process.env.PHONE_PARTNER);
+
+    let senderName;
+    if (fromId === jeffId)         senderName = process.env.NAME_JEFF    || 'Jeff';
+    else if (fromId === partnerId) senderName = process.env.NAME_PARTNER || 'Partner';
+    else return res.status(403).json({ error: 'Sender not recognized' });
+
+    const [newTotal] = await Promise.all([
+      incrementHoursLogged(projectId, parsedHours),
+      addTimeEntry({ projectId, hours: parsedHours, description, loggedBy: senderName, date }),
+    ]);
+
+    await addActivityEntry({
+      projectId,
+      updateType: 'time logged',
+      description: `${parsedHours}h${description ? ` — ${description}` : ''}`,
+      updatedBy: senderName,
+    });
+
+    res.json({ success: true, newTotal });
+  } catch (err) {
+    console.error('POST /api/timelog:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

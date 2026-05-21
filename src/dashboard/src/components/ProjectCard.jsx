@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import MessageModal from './MessageModal';
+import TimeLogModal from './TimeLogModal';
 
 const TYPE_COLORS = {
   'project created':      'bg-green-100 text-green-700',
@@ -12,8 +13,9 @@ const TYPE_COLORS = {
   'note':                 'bg-gray-100 text-gray-600',
 };
 
-export default function ProjectCard({ project, recentActivity, user, onClick }) {
+export default function ProjectCard({ project, recentActivity, user, onClick, onLogged }) {
   const [showMsg, setShowMsg] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   const { name, client, hoursLogged, estimatedHours, status } = project;
   const pct = estimatedHours ? Math.min(100, Math.round((hoursLogged / estimatedHours) * 100)) : null;
@@ -71,15 +73,26 @@ export default function ProjectCard({ project, recentActivity, user, onClick }) 
           </div>
         )}
 
-        {/* Message button */}
-        <button
-          onClick={e => { e.stopPropagation(); setShowMsg(true); }}
-          className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
-        >
-          💬 Message
-        </button>
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={e => { e.stopPropagation(); setShowLog(true); }}
+            className="flex-1 py-2 text-xs font-semibold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+          >
+            ⏱ Log Time
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); setShowMsg(true); }}
+            className="flex-1 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+          >
+            💬 Message
+          </button>
+        </div>
       </div>
 
+      {showLog && (
+        <TimeLogModal project={project} user={user} onClose={() => setShowLog(false)} onLogged={onLogged} />
+      )}
       {showMsg && (
         <MessageModal project={project} user={user} onClose={() => setShowMsg(false)} />
       )}

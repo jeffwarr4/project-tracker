@@ -18,5 +18,6 @@ export const api = {
   stats:    ()             => req('/api/stats'),
   timelog:  (params = {})  => req('/api/timelog'  + (Object.keys(params).length ? qs(params) : '')),
   activity: (params = {})  => req('/api/activity' + (Object.keys(params).length ? qs(params) : '')),
+  logTime:  data           => req('/api/timelog', { method: 'POST', body: JSON.stringify(data) }),
   message:  data           => req('/api/message', { method: 'POST', body: JSON.stringify(data) }),
 };

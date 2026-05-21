@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../utils/api';
+import TimeLogModal from './TimeLogModal';
 
 const DOT = {
   'project created':      'bg-green-500',
@@ -12,10 +13,15 @@ const DOT = {
   'note':                 'bg-gray-400',
 };
 
-export default function ProjectDetail({ project, onClose }) {
+export default function ProjectDetail({ project, user, onClose }) {
   const [timelog,  setTimelog]  = useState([]);
   const [activity, setActivity] = useState([]);
   const [loading,  setLoading]  = useState(true);
+  const [showLog,  setShowLog]  = useState(false);
+
+  const loadTimelog = useCallback(() =>
+    api.timelog({ projectId: project.id }).then(t => setTimelog(t.entries || [])),
+  [project.id]);
 
   useEffect(() => {
     Promise.all([
@@ -43,7 +49,7 @@ export default function ProjectDetail({ project, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        <div className="overflow-y-auto flex-1 p-6 space-y-6 pb-0">
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -119,7 +125,25 @@ export default function ProjectDetail({ project, onClose }) {
             </>
           )}
         </div>
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-100 shrink-0">
+          <button
+            onClick={() => setShowLog(true)}
+            className="w-full py-3 text-sm font-semibold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+          >
+            ⏱ Log Time
+          </button>
+        </div>
       </div>
+
+      {showLog && (
+        <TimeLogModal
+          project={project}
+          user={user}
+          onClose={() => setShowLog(false)}
+          onLogged={loadTimelog}
+        />
+      )}
     </div>
   );
 }
