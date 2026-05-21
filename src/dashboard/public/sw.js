@@ -1,8 +1,7 @@
-const CACHE = 'pt-v2';
-const STATIC = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'pt-v3';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/manifest.json'])));
   self.skipWaiting();
 });
 
@@ -16,12 +15,18 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Non-GET requests (POST, PUT, etc.) must bypass the service worker entirely
   if (e.request.method !== 'GET') return;
 
   const url = new URL(e.request.url);
 
-  // Network-first for API calls — return cached data if offline
+  // HTML always fetched fresh — Vite changes JS/CSS hashes on every build,
+  // so a stale index.html would reference filenames that no longer exist.
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
+  // Network-first for API calls — cache fallback for offline use
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request)
@@ -35,7 +40,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for static assets — safe because Vite content-hashes filenames
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
