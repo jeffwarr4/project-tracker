@@ -1,3 +1,11 @@
+import { useState } from 'react';
+
+const DATE_PILLS = [
+  { value: 'all',   label: 'All time' },
+  { value: 'week',  label: 'This week' },
+  { value: 'month', label: 'This month' },
+];
+
 const DOT = {
   'project created':       'bg-green-500',
   'time logged':           'bg-blue-500',
@@ -19,27 +27,43 @@ function relative(dateStr) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function ActivityFeed({ entries, filters }) {
+export default function ActivityFeed({ entries }) {
+  const [dateRange, setDateRange] = useState('all');
   const now = new Date();
 
   const filtered = entries.filter(e => {
-    if (filters.dateRange === 'week') {
+    if (dateRange === 'week') {
       const dow = now.getDay();
       const monday = new Date(now);
       monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
       monday.setHours(0, 0, 0, 0);
       if (e.date < monday.toISOString().split('T')[0]) return false;
-    } else if (filters.dateRange === 'month') {
+    } else if (dateRange === 'month') {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       if (e.date < monthStart) return false;
     }
     return true;
   });
 
+  const pill = (active) =>
+    `px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+      active
+        ? 'bg-indigo-600 text-white'
+        : 'text-gray-500 hover:text-indigo-600'
+    }`;
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-      <div className="px-4 py-3 border-b border-gray-50">
+      <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
         <h3 className="font-semibold text-gray-800 text-sm">Activity Feed</h3>
+        <div className="flex gap-0.5">
+          {DATE_PILLS.map(d => (
+            <button key={d.value} className={pill(dateRange === d.value)}
+              onClick={() => setDateRange(d.value)}>
+              {d.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filtered.length === 0 ? (

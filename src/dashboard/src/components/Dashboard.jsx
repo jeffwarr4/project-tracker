@@ -5,7 +5,7 @@ import FilterBar from './FilterBar';
 import KanbanBoard from './KanbanBoard';
 import ActivityFeed from './ActivityFeed';
 
-const DEFAULT_FILTERS = { status: 'all', assignee: 'all', dateRange: 'all' };
+const DEFAULT_FILTERS = { status: 'all', assignee: 'all' };
 
 export default function Dashboard({ user, onLogout }) {
   const { projects, stats, activity, loading, error, refreshing, refresh } = useData();
@@ -73,7 +73,7 @@ export default function Dashboard({ user, onLogout }) {
               refresh={refresh}
             />
 
-            <ActivityFeed entries={activity} filters={filters} />
+            <ActivityFeed entries={activity} />
           </>
         )}
       </main>
