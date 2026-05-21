@@ -41,6 +41,18 @@ router.get('/projects', async (_req, res) => {
   }
 });
 
+router.get('/projects/:id', async (req, res) => {
+  try {
+    const projects = await getAllProjects();
+    const project = projects.find(p => p.id === req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json({ project });
+  } catch (err) {
+    console.error(`GET /api/projects/${req.params.id}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Stats ---------------------------------------------------------------
 
 router.get('/stats', async (_req, res) => {

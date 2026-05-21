@@ -55,9 +55,11 @@ export default function ProjectDetail({ project, user, onClose }) {
 
   useEffect(() => {
     Promise.all([
+      api.project(project.id),
       api.timelog({ projectId: project.id }),
       api.activity({ projectId: project.id }),
-    ]).then(([t, a]) => {
+    ]).then(([p, t, a]) => {
+      setLinks(p.project.links || []);
       setTimelog(t.entries || []);
       setActivity(a.entries || []);
     }).finally(() => setLoading(false));

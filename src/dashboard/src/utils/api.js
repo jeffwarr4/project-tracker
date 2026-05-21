@@ -15,6 +15,7 @@ const qs = p => '?' + new URLSearchParams(Object.fromEntries(Object.entries(p).f
 export const api = {
   auth:     phone          => req('/api/auth',    { method: 'POST', body: JSON.stringify({ phone }) }),
   projects: ()             => req('/api/projects'),
+  project:  id             => req(`/api/projects/${id}`),
   stats:    ()             => req('/api/stats'),
   timelog:  (params = {})  => req('/api/timelog'  + (Object.keys(params).length ? qs(params) : '')),
   activity: (params = {})  => req('/api/activity' + (Object.keys(params).length ? qs(params) : '')),
