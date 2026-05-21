@@ -3,11 +3,27 @@
 const { getSheetsClient, SPREADSHEET_ID } = require('./client');
 
 const SHEET = 'Projects';
-// Column indices (0-based) matching header order
 const COL = {
   ID: 0, NAME: 1, CLIENT: 2, STATUS: 3, DESCRIPTION: 4,
-  DOCS: 5, EST_HOURS: 6, HOURS_LOGGED: 7, UPDATED: 8, CREATED_BY: 9,
+  LINKS: 5, EST_HOURS: 6, HOURS_LOGGED: 7, UPDATED: 8, CREATED_BY: 9,
 };
+
+function parseLinks(raw) {
+  if (!raw) return [];
+  return raw.split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const idx = line.indexOf('|');
+      if (idx === -1) return null;
+      return { label: line.slice(0, idx).trim(), url: line.slice(idx + 1).trim() };
+    })
+    .filter(Boolean);
+}
+
+function serializeLinks(links) {
+  return (links || []).map(l => `${l.label}|${l.url}`).join('\n');
+}
 
 async function getAllProjects() {
   const sheets = await getSheetsClient();
@@ -24,7 +40,7 @@ async function getAllProjects() {
     client: row[COL.CLIENT] || '',
     status: row[COL.STATUS] || 'active',
     description: row[COL.DESCRIPTION] || '',
-    documentsNeeded: row[COL.DOCS] ? row[COL.DOCS].split(',').map(d => d.trim()) : [],
+    links: parseLinks(row[COL.LINKS]),
     estimatedHours: parseFloat(row[COL.EST_HOURS]) || null,
     hoursLogged: parseFloat(row[COL.HOURS_LOGGED]) || 0,
     lastUpdated: row[COL.UPDATED] || '',
@@ -47,7 +63,7 @@ async function addProject(data) {
     data.clientName || '',
     'active',
     data.description || '',
-    Array.isArray(data.documentsNeeded) ? data.documentsNeeded.join(', ') : '',
+    '',
     data.estimatedHours != null ? data.estimatedHours : '',
     0,
     now,
@@ -94,8 +110,8 @@ async function updateProject(projectId, updates) {
     changes.push({ col: COL.STATUS, value: updates.status });
   if (updates.description)
     changes.push({ col: COL.DESCRIPTION, value: updates.description });
-  if (updates.documentsNeeded)
-    changes.push({ col: COL.DOCS, value: updates.documentsNeeded.join(', ') });
+  if (updates.links !== undefined)
+    changes.push({ col: COL.LINKS, value: serializeLinks(updates.links) });
   if (updates.estimatedHours != null)
     changes.push({ col: COL.EST_HOURS, value: updates.estimatedHours });
   if (updates.notes)

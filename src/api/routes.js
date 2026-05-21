@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { getAllProjects, incrementHoursLogged } = require('../sheets/projects');
+const { getAllProjects, updateProject, incrementHoursLogged } = require('../sheets/projects');
 const { getAllTimeEntries, addTimeEntry } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
 const { notifyCollaborationMessage } = require('../email/mailer');
@@ -120,6 +120,20 @@ router.get('/activity', async (req, res) => {
     res.json({ entries: merged });
   } catch (err) {
     console.error('GET /api/activity:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Project Links -------------------------------------------------------
+
+router.put('/projects/:id/links', async (req, res) => {
+  try {
+    const { links } = req.body || {};
+    if (!Array.isArray(links)) return res.status(400).json({ error: 'links must be an array' });
+    await updateProject(req.params.id, { links });
+    res.json({ success: true, links });
+  } catch (err) {
+    console.error(`PUT /api/projects/${req.params.id}/links:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });

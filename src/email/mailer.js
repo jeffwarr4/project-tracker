@@ -71,7 +71,6 @@ async function notifyNewProject(project, senderName) {
       ['Client',      project.clientName  || project.client || 'N/A'],
       ['Created by',  senderName],
       ['Est. hours',  project.estimatedHours ? `${project.estimatedHours}h` : 'Not set'],
-      ['Docs needed', project.documentsNeeded?.length ? project.documentsNeeded.join(', ') : 'None listed'],
       ['Project ID',  project.id],
     ],
     project.description

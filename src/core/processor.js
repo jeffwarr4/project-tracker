@@ -47,7 +47,6 @@ async function processMessage({ messageText, senderName, replyFn }) {
         `Name: ${data.projectName}\n` +
         `Client: ${data.clientName || 'N/A'}\n` +
         (data.estimatedHours ? `Estimated: ${data.estimatedHours}h\n` : '') +
-        (data.documentsNeeded?.length ? `Docs needed: ${data.documentsNeeded.join(', ')}\n` : '') +
         (confirmationMessage ? `\n${confirmationMessage}` : '')
       );
       break;
