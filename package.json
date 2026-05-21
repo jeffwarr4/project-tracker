@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "build:dashboard": "cd src/dashboard && npm install && npm run build",
+    "digest": "node -e \"require('dotenv').config(); require('./src/jobs/weekly-digest').runWeeklyDigest().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
     "test": "node tests/test-messages.js",
     "test:sheets": "node tests/test-sheets.js"
   },
@@ -16,10 +17,11 @@
     "axios": "^1.7.0",
     "dotenv": "^16.4.0",
     "express": "^4.19.0",
-    "resend": "^4.0.0",
     "form-data": "^4.0.0",
     "googleapis": "^144.0.0",
+    "node-cron": "^4.2.1",
     "openai": "^4.52.0",
+    "resend": "^4.0.0",
     "telegraf": "^4.16.3"
   },
   "engines": {

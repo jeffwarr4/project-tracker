@@ -133,9 +133,46 @@ async function notifyCollaborationMessage(projectId, projectName, message, sende
   await send(recipientEmail, subject, body);
 }
 
+async function sendWeeklyDigest(weekLabel, groups, totalHours) {
+  const subject = `[Project Tracker] Weekly time log — ${weekLabel}`;
+
+  const projectsHtml = groups.map(group => {
+    const rows = group.entries
+      .slice().sort((a, b) => a.date.localeCompare(b.date))
+      .map(e => `
+        <tr>
+          <td style="padding:3px 0;color:#6b7280;font-size:12px;width:82px;vertical-align:top">${e.date}</td>
+          <td style="padding:3px 0;color:#2563eb;font-size:13px;font-weight:600;width:36px;vertical-align:top">${e.hours}h</td>
+          <td style="padding:3px 0;color:#374151;font-size:13px;vertical-align:top">${e.description || '—'}</td>
+          <td style="padding:3px 0;color:#9ca3af;font-size:12px;text-align:right;white-space:nowrap;vertical-align:top">${e.loggedBy}</td>
+        </tr>`).join('');
+
+    return `
+      <div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:600;color:#111827;padding-bottom:6px;border-bottom:1px solid #e5e7eb;margin-bottom:8px">
+          ${group.name}
+          <span style="font-weight:400;color:#6b7280;margin-left:6px">${Math.round(group.totalHours * 10) / 10}h</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse">${rows}</table>
+      </div>`;
+  }).join('');
+
+  const extra = `
+    <div style="margin-top:4px">
+      ${projectsHtml}
+      <div style="border-top:2px solid #e5e7eb;padding-top:10px;text-align:right">
+        <span style="font-size:14px;font-weight:700;color:#111827">${totalHours}h total this week</span>
+      </div>
+    </div>`;
+
+  const body = html('Weekly time log', '#2563eb', [], extra);
+  await send(EMAILS.both(), subject, body);
+}
+
 module.exports = {
   notifyNewProject,
   notifyProjectUpdate,
   notifyTimeLog,
   notifyCollaborationMessage,
+  sendWeeklyDigest,
 };

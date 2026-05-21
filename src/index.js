@@ -15,6 +15,14 @@ if (useTelegram) required.push('TELEGRAM_BOT_TOKEN');
 if (useWhatsApp) required.push('WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_VERIFY_TOKEN');
 
 async function main() {
+  const cron = require('node-cron');
+  const { runWeeklyDigest } = require('./jobs/weekly-digest');
+
+  // Weekly time log digest — Fridays at 6 PM server time
+  cron.schedule('0 18 * * 5', () => {
+    runWeeklyDigest().catch(err => console.error('[weekly-digest] Error:', err.message));
+  });
+  console.log('Weekly digest scheduled (Fridays 18:00 server time).');
   const missing = required.filter(k => !process.env[k]);
   if (missing.length) {
     console.error('Missing required environment variables:', missing.join(', '));
