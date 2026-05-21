@@ -199,9 +199,7 @@ async function handleIncoming(req, res) {
           if (isDuplicate(msg.id)) continue;
 
           const waId        = msg.from;
-          const senderName  = getDisplayName(waId)
-            || contacts.find(c => c.wa_id === waId)?.profile?.name
-            || null;
+          const senderName  = getDisplayName(waId);
 
           if (!senderName) {
             await sendWhatsAppMessage(waId, 'Sorry, this bot is private.');
