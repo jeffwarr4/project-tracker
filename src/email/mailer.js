@@ -51,7 +51,7 @@ async function send(to, subject, htmlBody) {
     return;
   }
   const { error } = await getResend().emails.send({
-    from: 'Project Tracker <onboarding@resend.dev>',
+    from: 'Project Tracker <notifications@mail.good-yute.com>',
     to:   Array.isArray(to) ? to : [to],
     subject,
     html: htmlBody,

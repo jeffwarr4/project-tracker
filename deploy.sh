@@ -53,6 +53,10 @@ fi
 info "Installing npm dependencies..."
 npm install --omit=dev
 
+# ── 5b. Build dashboard ───────────────────────────────────────────────────────
+info "Building dashboard..."
+npm run build:dashboard
+
 # ── 6. Create .env if it doesn't exist ───────────────────────────────────────
 if [ ! -f "$APP_DIR/.env" ]; then
   info "Creating .env template — fill in your values before starting the bot."
@@ -94,6 +98,11 @@ MESSAGING_PLATFORM=telegram
 
 # Express webhook server port (used for WhatsApp/SMS)
 PORT=3000
+
+# Email notifications (Resend — https://resend.com)
+RESEND_API_KEY=
+EMAIL_JEFF=
+EMAIL_PARTNER=
 EOF
   warning ".env created with placeholders — fill in your credentials before starting."
 else

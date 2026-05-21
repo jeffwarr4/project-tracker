@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MessageModal from './MessageModal';
 
 const TYPE_COLORS = {
   'project created':      'bg-green-100 text-green-700',
@@ -12,6 +13,7 @@ const TYPE_COLORS = {
 };
 
 export default function ProjectCard({ project, recentActivity, user, onClick }) {
+  const [showMsg, setShowMsg] = useState(false);
 
   const { name, client, hoursLogged, estimatedHours, status } = project;
   const pct = estimatedHours ? Math.min(100, Math.round((hoursLogged / estimatedHours) * 100)) : null;
@@ -69,7 +71,18 @@ export default function ProjectCard({ project, recentActivity, user, onClick }) 
           </div>
         )}
 
+        {/* Message button */}
+        <button
+          onClick={e => { e.stopPropagation(); setShowMsg(true); }}
+          className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+        >
+          💬 Message
+        </button>
       </div>
+
+      {showMsg && (
+        <MessageModal project={project} user={user} onClose={() => setShowMsg(false)} />
+      )}
     </>
   );
 }
