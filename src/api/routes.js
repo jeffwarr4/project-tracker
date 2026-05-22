@@ -5,6 +5,7 @@ const { getAllProjects, updateProject, incrementHoursLogged } = require('../shee
 const { getAllTimeEntries, addTimeEntry } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
 const { notifyCollaborationMessage } = require('../email/mailer');
+const { runWeeklyDigest }            = require('../jobs/weekly-digest');
 
 const silentEmail = promise =>
   promise.catch(err => console.warn('[email] notification failed:', err.message));
@@ -236,6 +237,22 @@ router.post('/message', async (req, res) => {
     silentEmail(notifyCollaborationMessage(projectId, projectName, message, senderName, recipientEmail));
   } catch (err) {
     console.error('POST /api/message:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Admin: trigger digest on demand -------------------------------------
+
+router.post('/admin/trigger-digest', async (req, res) => {
+  const { secret } = req.body || {};
+  if (secret !== process.env.WHATSAPP_VERIFY_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    await runWeeklyDigest();
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /api/admin/trigger-digest:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

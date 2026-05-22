@@ -8,11 +8,12 @@ async function addTimeEntry({ projectId, hours, description, loggedBy, date }) {
   const sheets = await getSheetsClient();
   const entryDate = date || new Date().toISOString().split('T')[0];
 
-  const row = [projectId, entryDate, hours, description || '', loggedBy || ''];
+  // Column F (Reported) left blank — user marks it in the sheet once hours have been reported/invoiced
+  const row = [projectId, entryDate, hours, description || '', loggedBy || '', ''];
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID(),
-    range: `${SHEET}!A:E`,
+    range: `${SHEET}!A:F`,
     valueInputOption: 'RAW',
     requestBody: { values: [row] },
   });
@@ -25,7 +26,7 @@ async function getTimeEntriesForProject(projectId) {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID(),
-    range: `${SHEET}!A2:E`,
+    range: `${SHEET}!A2:F`,
   });
 
   if (!res.data.values) return [];
@@ -33,11 +34,12 @@ async function getTimeEntriesForProject(projectId) {
   return res.data.values
     .filter(row => row[0] === projectId)
     .map(row => ({
-      projectId: row[0],
-      date: row[1],
-      hours: parseFloat(row[2]) || 0,
+      projectId:   row[0],
+      date:        row[1],
+      hours:       parseFloat(row[2]) || 0,
       description: row[3] || '',
-      loggedBy: row[4] || '',
+      loggedBy:    row[4] || '',
+      reported:    row[5] || '',
     }));
 }
 
@@ -45,22 +47,24 @@ async function getAllTimeEntries(filters = {}) {
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID(),
-    range: `${SHEET}!A2:E`,
+    range: `${SHEET}!A2:F`,
   });
 
   if (!res.data.values) return [];
 
   let entries = res.data.values.map(row => ({
-    projectId: row[0] || '',
-    date: row[1] || '',
-    hours: parseFloat(row[2]) || 0,
+    projectId:   row[0] || '',
+    date:        row[1] || '',
+    hours:       parseFloat(row[2]) || 0,
     description: row[3] || '',
-    loggedBy: row[4] || '',
+    loggedBy:    row[4] || '',
+    reported:    row[5] || '',
   }));
 
-  if (filters.projectId) entries = entries.filter(e => e.projectId === filters.projectId);
-  if (filters.startDate)  entries = entries.filter(e => e.date >= filters.startDate);
-  if (filters.endDate)    entries = entries.filter(e => e.date <= filters.endDate);
+  if (filters.projectId)       entries = entries.filter(e => e.projectId === filters.projectId);
+  if (filters.startDate)       entries = entries.filter(e => e.date >= filters.startDate);
+  if (filters.endDate)         entries = entries.filter(e => e.date <= filters.endDate);
+  if (filters.unreportedOnly)  entries = entries.filter(e => !e.reported);
 
   return entries;
 }

@@ -161,7 +161,7 @@ async function sendWeeklyDigest(weekLabel, groups, totalHours) {
     <div style="margin-top:4px">
       ${projectsHtml}
       <div style="border-top:2px solid #e5e7eb;padding-top:10px;text-align:right">
-        <span style="font-size:14px;font-weight:700;color:#111827">${totalHours}h total this week</span>
+        <span style="font-size:14px;font-weight:700;color:#111827">${totalHours}h total unreported</span>
       </div>
     </div>`;
 
