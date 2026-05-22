@@ -18,8 +18,8 @@ async function main() {
   const cron = require('node-cron');
   const { runWeeklyDigest } = require('./jobs/weekly-digest');
 
-  // Weekly time log digest — Fridays at 6 PM server time
-  cron.schedule('0 18 * * 5', () => {
+  // Weekly time log digest — Saturday 1 AM server time
+  cron.schedule('0 1 * * 6', () => {
     runWeeklyDigest().catch(err => console.error('[weekly-digest] Error:', err.message));
   });
   console.log('Weekly digest scheduled (Fridays 18:00 server time).');
