@@ -27,14 +27,25 @@ function serializeLinks(links) {
 
 async function getAllProjects() {
   const sheets = await getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID(),
-    range: `${SHEET}!A2:J`,
-  });
+  const id = SPREADSHEET_ID();
 
-  if (!res.data.values) return [];
+  // Fetch projects and time log in parallel — hoursLogged is computed from
+  // the Time Log sheet so manual edits to that sheet are always reflected.
+  const [projectsRes, timeLogRes] = await Promise.all([
+    sheets.spreadsheets.values.get({ spreadsheetId: id, range: `${SHEET}!A2:J` }),
+    sheets.spreadsheets.values.get({ spreadsheetId: id, range: `Time Log!A2:C` }),
+  ]);
 
-  return res.data.values.map(row => ({
+  if (!projectsRes.data.values) return [];
+
+  const hoursByProject = {};
+  for (const row of (timeLogRes.data.values || [])) {
+    const projectId = row[0];
+    const hours = parseFloat(row[2]) || 0;
+    if (projectId) hoursByProject[projectId] = (hoursByProject[projectId] || 0) + hours;
+  }
+
+  return projectsRes.data.values.map(row => ({
     id: row[COL.ID] || '',
     name: row[COL.NAME] || '',
     client: row[COL.CLIENT] || '',
@@ -42,7 +53,7 @@ async function getAllProjects() {
     description: row[COL.DESCRIPTION] || '',
     links: parseLinks(row[COL.LINKS]),
     estimatedHours: parseFloat(row[COL.EST_HOURS]) || null,
-    hoursLogged: parseFloat(row[COL.HOURS_LOGGED]) || 0,
+    hoursLogged: Math.round((hoursByProject[row[COL.ID]] || 0) * 10) / 10,
     lastUpdated: row[COL.UPDATED] || '',
     createdBy: row[COL.CREATED_BY] || '',
   }));
