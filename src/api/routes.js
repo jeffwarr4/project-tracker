@@ -125,7 +125,10 @@ router.get('/activity', async (req, res) => {
       updatedBy:  e.loggedBy,
     }));
 
-    const merged = [...actEntries, ...timeAsActivity]
+    // Exclude 'time logged' from Activity Log — Time Log sheet is source of truth to avoid duplicates
+    const actEntriesFiltered = actEntries.filter(e => e.updateType !== 'time logged');
+
+    const merged = [...actEntriesFiltered, ...timeAsActivity]
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
       .slice(0, parseInt(limit, 10));
 

@@ -6,6 +6,24 @@ const DATE_PILLS = [
   { value: 'month', label: 'This month' },
 ];
 
+const TYPE_PILLS = [
+  { value: 'all',           label: 'All' },
+  { value: 'time',          label: 'Time' },
+  { value: 'activity',      label: 'Activity' },
+  { value: 'collaboration', label: 'Collaboration' },
+];
+
+const TYPE_CATEGORY = {
+  'time logged':           'time',
+  'hours adjusted':        'time',
+  'project created':       'activity',
+  'scope change':          'activity',
+  'status change':         'activity',
+  'new document added':    'activity',
+  'note':                  'activity',
+  'collaboration message': 'collaboration',
+};
+
 const DOT = {
   'project created':       'bg-green-500',
   'time logged':           'bg-blue-500',
@@ -27,11 +45,14 @@ function relative(dateStr) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function ActivityFeed({ entries }) {
-  const [dateRange, setDateRange] = useState('all');
+export default function ActivityFeed({ entries, projectFilter, onClearProjectFilter }) {
+  const [dateRange,  setDateRange]  = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const now = new Date();
 
   const filtered = entries.filter(e => {
+    if (projectFilter && e.projectId !== projectFilter) return false;
+
     if (dateRange === 'week') {
       const dow = now.getDay();
       const monday = new Date(now);
@@ -42,6 +63,12 @@ export default function ActivityFeed({ entries }) {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       if (e.date < monthStart) return false;
     }
+
+    if (typeFilter !== 'all') {
+      const cat = TYPE_CATEGORY[e.updateType] || 'activity';
+      if (cat !== typeFilter) return false;
+    }
+
     return true;
   });
 
@@ -54,13 +81,35 @@ export default function ActivityFeed({ entries }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-      <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-gray-800 text-sm">Activity Feed</h3>
+      <div className="px-4 py-3 border-b border-gray-50 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-800 text-sm">Activity Feed</h3>
+            {projectFilter && (
+              <span className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
+                {projectFilter}
+                <button
+                  onClick={onClearProjectFilter}
+                  className="ml-0.5 text-indigo-400 hover:text-indigo-700 leading-none"
+                  title="Clear project filter"
+                >×</button>
+              </span>
+            )}
+          </div>
+          <div className="flex gap-0.5">
+            {DATE_PILLS.map(d => (
+              <button key={d.value} className={pill(dateRange === d.value)}
+                onClick={() => setDateRange(d.value)}>
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex gap-0.5">
-          {DATE_PILLS.map(d => (
-            <button key={d.value} className={pill(dateRange === d.value)}
-              onClick={() => setDateRange(d.value)}>
-              {d.label}
+          {TYPE_PILLS.map(t => (
+            <button key={t.value} className={pill(typeFilter === t.value)}
+              onClick={() => setTypeFilter(t.value)}>
+              {t.label}
             </button>
           ))}
         </div>

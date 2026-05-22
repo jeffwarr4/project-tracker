@@ -13,7 +13,7 @@ const TYPE_COLORS = {
   'note':                 'bg-gray-100 text-gray-600',
 };
 
-export default function ProjectCard({ project, recentActivity, user, onClick, onLogged }) {
+export default function ProjectCard({ project, recentActivity, user, onClick, onLogged, onExpand }) {
   const [expanded, setExpanded] = useState(false);
   const [showMsg,  setShowMsg]  = useState(false);
   const [showLog,  setShowLog]  = useState(false);
@@ -66,7 +66,7 @@ export default function ProjectCard({ project, recentActivity, user, onClick, on
 
         {/* Expand toggle */}
         <button
-          onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+          onClick={e => { e.stopPropagation(); const next = !expanded; setExpanded(next); onExpand?.(next ? project.id : null); }}
           className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors border-t border-gray-50"
         >
           <span>{expanded ? '▴' : '▾'}</span>

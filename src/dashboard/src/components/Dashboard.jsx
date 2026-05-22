@@ -10,6 +10,7 @@ const DEFAULT_FILTERS = { status: 'active', assignee: 'all' };
 export default function Dashboard({ user, onLogout }) {
   const { projects, stats, activity, loading, error, refreshing, refresh } = useData();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [activityProjectFilter, setActivityProjectFilter] = useState(null);
 
   const assignees = [...new Set(projects.map(p => p.createdBy).filter(Boolean))].sort();
   const counts = {
@@ -76,9 +77,14 @@ export default function Dashboard({ user, onLogout }) {
               user={user}
               filters={filters}
               refresh={refresh}
+              onExpandCard={setActivityProjectFilter}
             />
 
-            <ActivityFeed entries={activity} />
+            <ActivityFeed
+              entries={activity}
+              projectFilter={activityProjectFilter}
+              onClearProjectFilter={() => setActivityProjectFilter(null)}
+            />
           </>
         )}
       </main>
