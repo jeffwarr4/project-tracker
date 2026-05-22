@@ -244,7 +244,7 @@ router.post('/message', async (req, res) => {
 // --- Admin: trigger digest on demand -------------------------------------
 
 router.post('/admin/trigger-digest', async (req, res) => {
-  const { secret } = req.body || {};
+  const secret = (req.body || {}).secret || req.query.secret;
   if (secret !== process.env.WHATSAPP_VERIFY_TOKEN) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
