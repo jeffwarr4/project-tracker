@@ -5,7 +5,7 @@ const STATUS_PILLS = [
   { value: 'completed', label: 'Done' },
 ];
 
-export default function FilterBar({ filters, onChange, assignees }) {
+export default function FilterBar({ filters, onChange, assignees, counts = {} }) {
   const pill = (active) =>
     `px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
       active
@@ -19,6 +19,15 @@ export default function FilterBar({ filters, onChange, assignees }) {
         <button key={s.value} className={pill(filters.status === s.value)}
           onClick={() => onChange({ ...filters, status: s.value })}>
           {s.label}
+          {counts[s.value] > 0 && (
+            <span className={`ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+              filters.status === s.value
+                ? 'bg-white/25 text-white'
+                : 'bg-gray-100 text-gray-500'
+            }`}>
+              {counts[s.value]}
+            </span>
+          )}
         </button>
       ))}
       <div className="w-px h-5 bg-gray-200 mx-0.5 hidden sm:block" />

@@ -11,8 +11,13 @@ export default function Dashboard({ user, onLogout }) {
   const { projects, stats, activity, loading, error, refreshing, refresh } = useData();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
-  // Derive unique assignee names from createdBy field
   const assignees = [...new Set(projects.map(p => p.createdBy).filter(Boolean))].sort();
+  const counts = {
+    all:       projects.length,
+    active:    projects.filter(p => p.status === 'active').length,
+    'on-hold': projects.filter(p => p.status === 'on-hold').length,
+    completed: projects.filter(p => p.status === 'completed').length,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,7 +68,7 @@ export default function Dashboard({ user, onLogout }) {
           <>
             <StatCards stats={stats} />
 
-            <FilterBar filters={filters} onChange={setFilters} assignees={assignees} />
+            <FilterBar filters={filters} onChange={setFilters} assignees={assignees} counts={counts} />
 
             <KanbanBoard
               projects={projects}
