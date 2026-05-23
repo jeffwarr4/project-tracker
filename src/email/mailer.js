@@ -17,7 +17,7 @@ const EMAILS = {
 
 // --- HTML template -------------------------------------------------------
 
-function html(title, headerColor = '#6366f1', rows = [], extra = '') {
+function html(title, headerColor = '#6366f1', rows = [], extra = '', subtitle = '') {
   const rowsHtml = rows.map(([label, value]) => `
     <tr>
       <td style="padding:6px 0;color:#6b7280;font-size:13px;width:130px;vertical-align:top">${label}</td>
@@ -31,6 +31,7 @@ function html(title, headerColor = '#6366f1', rows = [], extra = '') {
     <div style="background:${headerColor};padding:20px 24px">
       <p style="margin:0 0 4px;color:rgba(255,255,255,.75);font-size:12px;letter-spacing:.05em;text-transform:uppercase">Project Tracker</p>
       <h1 style="margin:0;color:white;font-size:20px;font-weight:700;line-height:1.3">${title}</h1>
+      ${subtitle ? `<p style="margin:6px 0 0;color:rgba(255,255,255,.85);font-size:15px;font-weight:600">${subtitle}</p>` : ''}
     </div>
     <div style="padding:24px">
       ${rowsHtml ? `<table style="width:100%;border-collapse:collapse">${rowsHtml}</table>` : ''}
@@ -165,7 +166,7 @@ async function sendWeeklyDigest(weekLabel, groups, totalHours) {
       </div>
     </div>`;
 
-  const body = html('Weekly time log', '#2563eb', [], extra);
+  const body = html('Weekly time log', '#2563eb', [], extra, `${totalHours}h across ${groups.length} project${groups.length !== 1 ? 's' : ''}`);
   await send(EMAILS.both(), subject, body);
 }
 
