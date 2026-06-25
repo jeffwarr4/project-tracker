@@ -170,10 +170,18 @@ async function sendWeeklyDigest(weekLabel, groups, totalHours) {
   await send(EMAILS.both(), subject, body);
 }
 
+async function sendHealthAlert(failures) {
+  const subject = `[Project Tracker] Health check failed (${failures.length} check${failures.length !== 1 ? 's' : ''})`;
+  const rows = failures.map(f => [f.name, f.error]);
+  const body = html('Health check failed', '#dc2626', rows, '', 'One or more pipeline checks did not pass');
+  await send(EMAILS.jeff(), subject, body);
+}
+
 module.exports = {
   notifyNewProject,
   notifyProjectUpdate,
   notifyTimeLog,
   notifyCollaborationMessage,
   sendWeeklyDigest,
+  sendHealthAlert,
 };

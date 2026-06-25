@@ -179,4 +179,32 @@ async function incrementHoursLogged(projectId, additionalHours) {
   return newTotal;
 }
 
-module.exports = { getAllProjects, addProject, updateProject, incrementHoursLogged };
+async function deleteProject(projectId) {
+  const sheets = await getSheetsClient();
+  const id = SPREADSHEET_ID();
+
+  const [meta, idsRes] = await Promise.all([
+    sheets.spreadsheets.get({ spreadsheetId: id }),
+    sheets.spreadsheets.values.get({ spreadsheetId: id, range: `${SHEET}!A:A` }),
+  ]);
+
+  const rowIndex = (idsRes.data.values || []).findIndex((row, i) => i > 0 && row[0] === projectId);
+  if (rowIndex === -1) return false;
+
+  const sheetMeta = meta.data.sheets.find(s => s.properties.title === SHEET);
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: id,
+    requestBody: {
+      requests: [{
+        deleteDimension: {
+          range: { sheetId: sheetMeta.properties.sheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1 },
+        },
+      }],
+    },
+  });
+
+  return true;
+}
+
+module.exports = { getAllProjects, addProject, updateProject, incrementHoursLogged, deleteProject };

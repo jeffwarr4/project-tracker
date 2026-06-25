@@ -6,6 +6,7 @@ const { getAllTimeEntries, addTimeEntry } = require('../sheets/time-log');
 const { getAllActivity, addActivityEntry } = require('../sheets/activity-log');
 const { notifyCollaborationMessage } = require('../email/mailer');
 const { runWeeklyDigest }            = require('../jobs/weekly-digest');
+const { runHealthCheck }             = require('../jobs/health-check');
 
 const silentEmail = promise =>
   promise.catch(err => console.warn('[email] notification failed:', err.message));
@@ -253,6 +254,22 @@ router.post('/admin/trigger-digest', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('POST /api/admin/trigger-digest:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Admin: trigger health check on demand --------------------------------
+
+router.post('/admin/trigger-health-check', async (req, res) => {
+  const secret = (req.body || {}).secret || req.query.secret;
+  if (secret !== process.env.WHATSAPP_VERIFY_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const failures = await runHealthCheck();
+    res.json({ success: true, failures });
+  } catch (err) {
+    console.error('POST /api/admin/trigger-health-check:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

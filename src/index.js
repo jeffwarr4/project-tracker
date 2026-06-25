@@ -17,12 +17,19 @@ if (useWhatsApp) required.push('WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_ACCESS_TOKE
 async function main() {
   const cron = require('node-cron');
   const { runWeeklyDigest } = require('./jobs/weekly-digest');
+  const { runHealthCheck }  = require('./jobs/health-check');
 
   // Weekly time log digest — Saturday 1 AM server time
   cron.schedule('0 1 * * 6', () => {
     runWeeklyDigest().catch(err => console.error('[weekly-digest] Error:', err.message));
   });
-  console.log('Weekly digest scheduled (Fridays 18:00 server time).');
+  console.log('Weekly digest scheduled (Saturday 1 AM server time).');
+
+  // Pipeline health check — every 6 hours
+  cron.schedule('0 */6 * * *', () => {
+    runHealthCheck().catch(err => console.error('[health-check] Error:', err.message));
+  });
+  console.log('Health check scheduled (every 6 hours).');
   const missing = required.filter(k => !process.env[k]);
   if (missing.length) {
     console.error('Missing required environment variables:', missing.join(', '));

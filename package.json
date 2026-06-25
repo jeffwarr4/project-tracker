@@ -9,6 +9,7 @@
     "dev": "node --watch src/index.js",
     "build:dashboard": "cd src/dashboard && npm install && npm run build",
     "digest": "node -e \"require('dotenv').config(); require('./src/jobs/weekly-digest').runWeeklyDigest().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "health-check": "node -e \"require('dotenv').config(); require('./src/jobs/health-check').runHealthCheck().then(f => { console.log(f.length ? f : 'All checks passed.'); process.exit(f.length ? 1 : 0); }).catch(e => { console.error(e); process.exit(1); })\"",
     "test": "node tests/test-messages.js",
     "test:sheets": "node tests/test-sheets.js"
   },
